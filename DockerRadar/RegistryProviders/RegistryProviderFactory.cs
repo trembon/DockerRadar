@@ -2,24 +2,28 @@
 
 public interface IRegistryProviderFactory
 {
-    IRegistryProvider? GetRegistryProvider(string imageId);
+    IRegistryProvider? GetRegistryProvider(string image);
 }
 
 public class RegistryProviderFactory(IServiceProvider serviceProvider) : IRegistryProviderFactory
 {
-    public IRegistryProvider? GetRegistryProvider(string imageId)
+    public IRegistryProvider? GetRegistryProvider(string image)
     {
-        if (imageId is null)
+        if (image is null)
             return null;
 
-        if (imageId.Contains("docker.io"))
+        if (image.Contains("docker.io"))
             return serviceProvider.GetRequiredKeyedService<IRegistryProvider>(nameof(DockerHubRegistryProvider));
 
-        if (imageId.Contains("mcr.microsoft.com"))
+        if (image.Contains("mcr.microsoft.com"))
             return serviceProvider.GetRequiredKeyedService<IRegistryProvider>(nameof(MicrosoftRegistryProvider));
 
-        if (imageId.Contains("ghcr.io"))
+        if (image.Contains("ghcr.io"))
             return serviceProvider.GetRequiredKeyedService<IRegistryProvider>(nameof(GitHubRegistryProvider));
+
+        // default to Docker Hub for images without a registry specified
+        if (!image.StartsWith("sha256:"))
+            return serviceProvider.GetRequiredKeyedService<IRegistryProvider>(nameof(DockerHubRegistryProvider));
 
         return null;
     }

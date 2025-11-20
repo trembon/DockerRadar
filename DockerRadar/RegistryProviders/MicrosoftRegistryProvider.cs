@@ -1,10 +1,13 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.Extensions.Caching.Memory;
+using System.Net.Http.Headers;
 
 namespace DockerRadar.RegistryProviders;
 
-public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory) : IRegistryProvider
+public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache) : RegistryProviderBase(httpClientFactory, memoryCache)
 {
-    public async Task<string> GetRemoteDigest(string imageName, CancellationToken cancellationToken)
+    protected override string Name => "Microsoft";
+
+    protected override Task<HttpRequestMessage> CreateRequest(string imageName, CancellationToken cancellationToken)
     {
         var parts = imageName.Split(':');
         var repo = parts[0].Replace("mcr.microsoft.com/", "");
@@ -14,11 +17,6 @@ public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory) : I
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.docker.distribution.manifest.v2+json"));
 
-        var client = httpClientFactory.CreateClient(nameof(MicrosoftRegistryProvider));
-        var response = await client.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-            throw new Exception($"Microsoft: Could not retrieve V2 info for repo (StatusCode: {response.StatusCode}");
-
-        return response.Headers.GetValues("Docker-Content-Digest").First();
+        return Task.FromResult(request);
     }
 }

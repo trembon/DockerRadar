@@ -1,11 +1,17 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.Extensions.Caching.Memory;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace DockerRadar.RegistryProviders;
 
-public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory) : IRegistryProvider
+public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache) : RegistryProviderBase(httpClientFactory, memoryCache)
 {
-    public async Task<string> GetRemoteDigest(string imageName, CancellationToken cancellationToken)
+    private readonly IHttpClientFactory httpClientFactory = httpClientFactory;
+    private readonly IMemoryCache memoryCache = memoryCache;
+
+    protected override string Name => "DockerHub";
+
+    protected override async Task<HttpRequestMessage> CreateRequest(string imageName, CancellationToken cancellationToken)
     {
         var parts = imageName.Split(':');
         var repo = parts[0].Replace("docker.io/", "");
@@ -21,19 +27,18 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory) : I
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.docker.distribution.manifest.v2+json"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var client = httpClientFactory.CreateClient(nameof(DockerHubRegistryProvider));
-        var res = await client.SendAsync(request, cancellationToken);
-        if (!res.IsSuccessStatusCode)
-            throw new Exception($"DockerHub: Could not retrieve info for repo (StatusCode: {res.StatusCode}");
-
-        return res.Headers.GetValues("Docker-Content-Digest").First();
+        return request;
     }
 
     private async Task<string?> GetAuthTokenAsync(string repo, CancellationToken cancellationToken)
     {
-        var client = httpClientFactory.CreateClient(nameof(DockerHubRegistryProvider));
-
         var url = $"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull";
+
+        var cachedToken = memoryCache.Get<string>(url);
+        if (cachedToken is not null)
+            return cachedToken;
+
+        var client = httpClientFactory.CreateClient(nameof(DockerHubRegistryProvider));
         var res = await client.GetAsync(url, cancellationToken);
 
         if (!res.IsSuccessStatusCode)
@@ -42,7 +47,10 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory) : I
         string data = await res.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(data);
         if (doc.RootElement.TryGetProperty("token", out var tokenEl))
+        {
+            memoryCache.Set(url, tokenEl.GetString(), TimeSpan.FromMinutes(10));
             return tokenEl.GetString();
+        }
 
         return null;
     }

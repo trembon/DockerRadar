@@ -1,11 +1,17 @@
-﻿using System.Net.Http.Headers;
+﻿using Microsoft.Extensions.Caching.Memory;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace DockerRadar.RegistryProviders;
 
-public class GitHubRegistryProvider(IHttpClientFactory httpClientFactory, IConfiguration configuration) : IRegistryProvider
+public class GitHubRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, IConfiguration configuration) : RegistryProviderBase(httpClientFactory, memoryCache)
 {
-    public async Task<string> GetRemoteDigest(string imageName, CancellationToken cancellationToken)
+    private readonly IHttpClientFactory httpClientFactory = httpClientFactory;
+    private readonly IMemoryCache memoryCache = memoryCache;
+
+    protected override string Name => "GitHub";
+
+    protected override async Task<HttpRequestMessage> CreateRequest(string imageName, CancellationToken cancellationToken)
     {
         var parts = imageName.Split(':');
         var repo = parts[0].Replace("ghcr.io/", "");
@@ -20,23 +26,22 @@ public class GitHubRegistryProvider(IHttpClientFactory httpClientFactory, IConfi
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.oci.image.index.v1+json"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        var res = await client.SendAsync(request, cancellationToken);
-        if (!res.IsSuccessStatusCode)
-            throw new Exception($"GitHub: Could not retrieve info for repo (StatusCode: {res.StatusCode}");
-
-        return res.Headers.GetValues("Docker-Content-Digest").First();
+        return request;
     }
 
     private async Task<string?> GetAuthTokenAsync(string repo, CancellationToken cancellationToken)
     {
-        var client = httpClientFactory.CreateClient(nameof(GitHubRegistryProvider));
-
         var url = $"https://ghcr.io/token?service=ghcr.io&scope=repository:{repo}:pull";
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
 
+        var cachedToken = memoryCache.Get<string>(url);
+        if (cachedToken is not null)
+            return cachedToken;
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
         var authString = Convert.ToBase64String(System.Text.Encoding.ASCII.GetBytes($"{configuration["GitHub:Username"]}:{configuration["GitHub:Token"]}"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authString);
 
+        var client = httpClientFactory.CreateClient(nameof(GitHubRegistryProvider));
         var res = await client.SendAsync(request, cancellationToken);
 
         if (!res.IsSuccessStatusCode)
@@ -45,7 +50,10 @@ public class GitHubRegistryProvider(IHttpClientFactory httpClientFactory, IConfi
         string data = await res.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(data);
         if (doc.RootElement.TryGetProperty("token", out var tokenEl))
+        {
+            memoryCache.Set(url, tokenEl.GetString(), TimeSpan.FromMinutes(10));
             return tokenEl.GetString();
+        }
 
         return null;
     }

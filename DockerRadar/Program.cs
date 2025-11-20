@@ -8,6 +8,7 @@ builder.Configuration.AddEnvironmentVariables(prefix: "APP_");
 builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddSingleton<ITimeService, TimeService>();
 builder.Services.AddSingleton<IContainerService, ContainerService>();
@@ -26,16 +27,48 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/containers", async (IContainerService containerService, CancellationToken cancellationToken) =>
+app.MapGet("/containers", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool running = true) =>
 {
     var containers = await containerService.GetAll(cancellationToken);
-    return Results.Ok(containers);
+    containers = [.. containers.OrderBy(x => x.Name)];
+
+    if (running)
+        containers = [.. containers.Where(x => x.Status != "exited")];
+
+    if (html)
+    {
+        StringBuilder stringBuilder = new();
+        stringBuilder.AppendLine("<table><thead><tr><th>Names</th><th>Image</th><th>Status</th><th>Digest</th><th>Has Update</th><th>Last checked</th></tr></thead><tbody>");
+        foreach (var container in containers)
+        {
+            stringBuilder.Append("<tr><td style=\"padding: 5px 20px;\">");
+            stringBuilder.Append(container.Name);
+            stringBuilder.Append("</td><td style=\"padding: 5px 30px;\">");
+            stringBuilder.Append(container.Image);
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.Status);
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.Digest);
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.HasUpdate);
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.LastChecked?.ToLocalTime());
+            stringBuilder.Append("</td></tr>");
+        }
+        stringBuilder.AppendLine("</tbody></table>");
+
+        return new HtmlResult(stringBuilder.ToString());
+    }
+    else
+    {
+        return Results.Ok(containers);
+    }
 }).WithName("List all containers").WithTags("Containers");
 
 app.MapGet("/containers/updates", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool running = true) =>
 {
     var containers = await containerService.GetAll(cancellationToken);
-    containers = [.. containers.Where(x => x.HasUpdate)];
+    containers = [.. containers.OrderBy(x => x.Name).Where(x => x.HasUpdate)];
 
     if (running)
         containers = [.. containers.Where(x => x.Status != "exited")];
@@ -47,7 +80,7 @@ app.MapGet("/containers/updates", async (IContainerService containerService, Can
         foreach (var container in containers)
         {
             stringBuilder.Append("<tr><td style=\"padding: 5px 20px;\">");
-            stringBuilder.Append(string.Join(',', container.Names));
+            stringBuilder.Append(container.Name);
             stringBuilder.Append("</td><td style=\"padding: 5px 30px;\">");
             stringBuilder.Append(container.Image);
             stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");

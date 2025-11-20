@@ -3,7 +3,7 @@
 public class ContainerInfoModel
 {
     public string Id { get; init; } = null!;
-    public IList<string> Names { get; init; } = [];
+    public string Name { get; init; } = null!;
     public string Image { get; init; } = null!;
     public string Digest { get; set; } = null!;
     public string Status { get; set; } = null!;
