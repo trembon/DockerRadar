@@ -22,7 +22,7 @@ public abstract class RegistryProviderBase(IHttpClientFactory httpClientFactory,
 
         var res = await client.SendAsync(request, cancellationToken);
         if (!res.IsSuccessStatusCode)
-            throw new Exception($"{Name}: Could not retrieve info for repo (StatusCode: {res.StatusCode}");
+            throw new Exception($"{Name}: Could not retrieve info for repo (StatusCode: {res.StatusCode})");
 
         var digest = res.Headers.GetValues("Docker-Content-Digest").First();
         memoryCache.Set(imageName, digest, TimeSpan.FromMinutes(60));

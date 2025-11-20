@@ -23,8 +23,6 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
         foreach (var container in containers)
         {
             string name = container.Names?.FirstOrDefault()?.Replace("/", "") ?? container.ID;
-            logger.LogInformation("Processing container {ContainerName}", name);
-
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
             {
                 Id = container.ID,
