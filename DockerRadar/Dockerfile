@@ -1,0 +1,13 @@
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
+ARG TARGETARCH
+COPY . .
+WORKDIR /
+RUN dotnet restore -a $TARGETARCH
+RUN dotnet publish -a $TARGETARCH --no-restore -o /app/publish
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 
+WORKDIR /app 
+EXPOSE 8080
+COPY --from=build /app/publish .
+USER $APP_UID 
+ENTRYPOINT ["./DockerRadar"]
