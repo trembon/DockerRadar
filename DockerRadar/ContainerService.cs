@@ -10,16 +10,20 @@ public interface IContainerService
     Task<ContainerInfoModel[]> GetAll(CancellationToken cancellationToken);
 }
 
-public class ContainerService(ITimeService timeService) : IContainerService
+public class ContainerService(ITimeService timeService, ILogger<ContainerService> logger) : IContainerService
 {
     private readonly ConcurrentDictionary<string, ContainerInfoModel> cache = [];
 
     public async Task<ContainerInfoModel[]> GetAll(CancellationToken cancellationToken)
     {
+        logger.LogInformation("Fetching container list from Docker daemon");
+
         var docker = new DockerClientConfiguration().CreateClient();
         var containers = await docker.Containers.ListContainersAsync(new ContainersListParameters { All = true }, cancellationToken);
         foreach (var container in containers)
         {
+            logger.LogInformation("Processing container {ContainerId} ({ContainerImage})", container.ID, container.Image);
+
             var image = await docker.Images.InspectImageAsync(container.ImageID, cancellationToken);
 
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
@@ -27,7 +31,7 @@ public class ContainerService(ITimeService timeService) : IContainerService
                 Id = container.ID,
                 Names = container.Names,
                 Image = container.Image,
-                ImageTag = image.RepoTags.First(),
+                ImageTag = image.RepoTags?.First(),
                 ImageDigest = container.ImageID,
                 ImageOs = image.Os,
                 ImageArchitecture = image.Architecture,
@@ -46,6 +50,7 @@ public class ContainerService(ITimeService timeService) : IContainerService
 
         foreach (var toDelete in cache.Values.Where(x => !containers.Any(c => c.ID == x.Id)).ToArray())
         {
+            logger.LogInformation("Removing container {ContainerId} from cache because it no longer exists", toDelete.Id);
             cache.TryRemove(toDelete.Id, out _);
         }
 

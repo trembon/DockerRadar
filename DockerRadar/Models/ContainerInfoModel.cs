@@ -5,7 +5,7 @@ public class ContainerInfoModel
     public string Id { get; init; } = null!;
     public IList<string> Names { get; init; } = [];
     public string Image { get; init; } = null!;
-    public string ImageTag { get; init; } = null!;
+    public string? ImageTag { get; init; }
     public string ImageDigest { get; set; } = null!;
     public string ImageOs { get; set; } = null!;
     public string ImageArchitecture { get; set; } = null!;

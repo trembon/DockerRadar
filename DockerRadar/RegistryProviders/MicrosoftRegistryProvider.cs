@@ -8,8 +8,6 @@ public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory) : I
 {
     public async Task<RemoteDigestModel[]> GetRemoteDigests(string imageName, CancellationToken cancellationToken)
     {
-        return [];
-
         var parts = imageName.Split(':');
         var repo = parts[0].Replace("mcr.microsoft.com/", "");
         var tag = parts.Length > 1 ? parts[1] : "latest";
