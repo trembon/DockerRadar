@@ -1,13 +1,11 @@
-﻿
-using DockerRadar.Models;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace DockerRadar.RegistryProviders;
 
 public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory) : IRegistryProvider
 {
-    public async Task<RemoteDigestModel[]> GetRemoteDigests(string imageName, CancellationToken cancellationToken)
+    public async Task<string> GetRemoteDigest(string imageName, CancellationToken cancellationToken)
     {
         var parts = imageName.Split(':');
         var repo = parts[0].Replace("docker.io/", "");
@@ -28,10 +26,7 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory) : I
         if (!res.IsSuccessStatusCode)
             throw new Exception($"DockerHub: Could not retrieve info for repo (StatusCode: {res.StatusCode}");
 
-        var digest = res.Headers.GetValues("Docker-Content-Digest").First();
-        var data = await res.Content.ReadFromJsonAsync<Rootobject>(cancellationToken);
-
-        return data?.manifests?.Select(x => new RemoteDigestModel(digest, x.platform.architecture, x.platform.os)).ToArray() ?? [];
+        return res.Headers.GetValues("Docker-Content-Digest").First();
     }
 
     private async Task<string?> GetAuthTokenAsync(string repo, CancellationToken cancellationToken)
@@ -50,42 +45,5 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory) : I
             return tokenEl.GetString();
 
         return null;
-    }
-
-    public class Rootobject
-    {
-        public Manifest[] manifests { get; set; }
-        public string mediaType { get; set; }
-        public int schemaVersion { get; set; }
-    }
-
-    public class Manifest
-    {
-        public Annotations annotations { get; set; }
-        public string digest { get; set; }
-        public string mediaType { get; set; }
-        public Platform platform { get; set; }
-        public int size { get; set; }
-    }
-
-    public class Annotations
-    {
-        public string comdockerofficialimagesbashbrewarch { get; set; }
-        public string orgopencontainersimagebasedigest { get; set; }
-        public string orgopencontainersimagebasename { get; set; }
-        public DateTime orgopencontainersimagecreated { get; set; }
-        public string orgopencontainersimagerevision { get; set; }
-        public string orgopencontainersimagesource { get; set; }
-        public string orgopencontainersimageurl { get; set; }
-        public string orgopencontainersimageversion { get; set; }
-        public string vnddockerreferencedigest { get; set; }
-        public string vnddockerreferencetype { get; set; }
-    }
-
-    public class Platform
-    {
-        public string architecture { get; set; }
-        public string os { get; set; }
-        public string variant { get; set; }
     }
 }

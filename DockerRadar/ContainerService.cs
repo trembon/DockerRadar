@@ -22,19 +22,14 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
         var containers = await docker.Containers.ListContainersAsync(new ContainersListParameters { All = true }, cancellationToken);
         foreach (var container in containers)
         {
-            logger.LogInformation("Processing container {ContainerId} ({ContainerImage})", container.ID, container.Image);
-
-            var image = await docker.Images.InspectImageAsync(container.ImageID, cancellationToken);
+            logger.LogInformation("Processing container {ContainerImage}", container.Image);
 
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
             {
                 Id = container.ID,
                 Names = container.Names,
                 Image = container.Image,
-                ImageTag = image.RepoTags?.First(),
-                ImageDigest = container.ImageID,
-                ImageOs = image.Os,
-                ImageArchitecture = image.Architecture,
+                Digest = container.ImageID,
                 Status = container.State,
                 HasUpdate = false,
                 UpdateCheckFailed = null,
@@ -43,7 +38,7 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
             }, (key, model) =>
             {
                 model.Status = container.State;
-                model.ImageDigest = container.ImageID;
+                model.Digest = container.ImageID;
                 return model;
             });
         }

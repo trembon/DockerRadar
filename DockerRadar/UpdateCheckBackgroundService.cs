@@ -31,7 +31,7 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
         var containers = await containerService.GetAll(cancellationToken);
         foreach (var container in containers.Where(x => timeService.Now() > x.NextCheck))
         {
-            logger.LogInformation("Checking updates for container {ContainerId} ({Image})", container.Id, container.Image);
+            logger.LogInformation("Checking updates for container {Image}", container.Image);
 
             bool hasUpdate = false;
             bool updateCheckFailed = false;
@@ -40,11 +40,8 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
             {
                 var provider = registryProviderFactory.GetRegistryProvider(container.Image) ?? throw new ArgumentException("No registry provider exists for image");
 
-                var remoteDigest = await provider.GetRemoteDigests(container.ImageTag ?? container.Image, cancellationToken);
-
-                var matchingRemoteDigest = remoteDigest.Where(x => x.OS == container.ImageOs && x.Architecture == container.ImageArchitecture).FirstOrDefault();
-                if (matchingRemoteDigest is not null)
-                    hasUpdate = matchingRemoteDigest.Digest != container.ImageDigest;
+                var remoteDigest = await provider.GetRemoteDigest(container.Image, cancellationToken);
+                hasUpdate = remoteDigest != container.Digest;
             }
             catch (Exception ex)
             {
