@@ -38,10 +38,14 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
 
             try
             {
-                var provider = registryProviderFactory.GetRegistryProvider(container.Image) ?? throw new ArgumentException("No registry provider exists for image");
+                var image = DockerImageParser.Parse(container.Image);
+                var provider = registryProviderFactory.GetRegistryProvider(image) ?? throw new ArgumentException("No registry provider exists for image");
 
-                var remoteDigest = await provider.GetRemoteDigest(container.Image, cancellationToken);
-                hasUpdate = remoteDigest != container.Digest;
+                var remoteDigest = await provider.GetRemoteDigest(image, cancellationToken);
+                container.RemoteDigest = remoteDigest;
+
+                if (remoteDigest != null)
+                    hasUpdate = remoteDigest != container.Digest;
             }
             catch (Exception ex)
             {

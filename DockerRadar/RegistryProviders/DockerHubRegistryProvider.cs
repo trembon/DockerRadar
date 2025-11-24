@@ -1,28 +1,22 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using DockerRadar.Models;
+using Microsoft.Extensions.Caching.Memory;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace DockerRadar.RegistryProviders;
 
-public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache) : RegistryProviderBase(httpClientFactory, memoryCache)
+public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, IConfiguration configuration) : RegistryProviderBase(httpClientFactory, memoryCache, configuration)
 {
     private readonly IHttpClientFactory httpClientFactory = httpClientFactory;
     private readonly IMemoryCache memoryCache = memoryCache;
 
-    protected override string Name => "DockerHub";
+    protected override string Name => "docker.io";
 
-    protected override async Task<HttpRequestMessage> CreateRequest(string imageName, CancellationToken cancellationToken)
+    protected override async Task<HttpRequestMessage> CreateRequest(DockerImage image, CancellationToken cancellationToken)
     {
-        var parts = imageName.Split(':');
-        var repo = parts[0].Replace("docker.io/", "");
-        var tag = parts.Length > 1 ? parts[1] : "latest";
+        var token = await GetAuthTokenAsync(image, cancellationToken) ?? throw new Exception($"{Name}: Could not retrieve auth token for repo");
 
-        if (!repo.Contains('/'))
-            repo = $"library/{repo}";
-
-        var token = await GetAuthTokenAsync(repo, cancellationToken) ?? throw new Exception("DockerHub: Could not retrieve auth token for repo");
-
-        var url = $"https://registry-1.docker.io/v2/{repo}/manifests/{tag}";
+        var url = $"https://registry-1.{image.Registry}/v2/{image.Namespace}/{image.Image}/manifests/{image.Tag}";
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.docker.distribution.manifest.v2+json"));
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -30,9 +24,9 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory, IMe
         return request;
     }
 
-    private async Task<string?> GetAuthTokenAsync(string repo, CancellationToken cancellationToken)
+    private async Task<string?> GetAuthTokenAsync(DockerImage image, CancellationToken cancellationToken)
     {
-        var url = $"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{repo}:pull";
+        var url = $"https://auth.docker.io/token?service=registry.docker.io&scope=repository:{image.Namespace}/{image.Image}:pull";
 
         var cachedToken = memoryCache.Get<string>(url);
         if (cachedToken is not null)
@@ -42,7 +36,7 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory, IMe
         var res = await client.GetAsync(url, cancellationToken);
 
         if (!res.IsSuccessStatusCode)
-            throw new Exception($"DockerHub: Auth request failed for repo (StatusCode: {res.StatusCode}");
+            throw new Exception($"{Name}: Auth request failed for repo (StatusCode: {res.StatusCode}");
 
         string data = await res.Content.ReadAsStringAsync(cancellationToken);
         using var doc = JsonDocument.Parse(data);

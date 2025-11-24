@@ -6,6 +6,7 @@ public class ContainerInfoModel
     public string Name { get; init; } = null!;
     public string Image { get; init; } = null!;
     public string Digest { get; set; } = null!;
+    public string? RemoteDigest { get; set; }
     public string Status { get; set; } = null!;
     public bool HasUpdate { get; set; }
     public bool? UpdateCheckFailed { get; set; }

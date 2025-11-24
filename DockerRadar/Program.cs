@@ -27,10 +27,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/containers", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool running = true) =>
+app.MapGet("/containers", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool updates = false, bool running = true) =>
 {
     var containers = await containerService.GetAll(cancellationToken);
     containers = [.. containers.OrderBy(x => x.Name)];
+
+    if (updates)
+        containers = [.. containers.Where(x => x.HasUpdate)];
 
     if (running)
         containers = [.. containers.Where(x => x.Status != "exited")];
@@ -38,7 +41,7 @@ app.MapGet("/containers", async (IContainerService containerService, Cancellatio
     if (html)
     {
         StringBuilder stringBuilder = new();
-        stringBuilder.AppendLine("<table><thead><tr><th>Names</th><th>Image</th><th>Status</th><th>Digest</th><th>Has Update</th><th>Last checked</th></tr></thead><tbody>");
+        stringBuilder.AppendLine("<table><thead><tr><th>Names</th><th>Image</th><th>Status</th><th>Digest</th><th>Remote Digest</th><th>Has Update</th><th>Update check failed</th><th>Last check</th><th>Next checked</th></tr></thead><tbody>");
         foreach (var container in containers)
         {
             stringBuilder.Append("<tr><td style=\"padding: 5px 20px;\">");
@@ -50,9 +53,15 @@ app.MapGet("/containers", async (IContainerService containerService, Cancellatio
             stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
             stringBuilder.Append(container.Digest);
             stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.RemoteDigest);
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
             stringBuilder.Append(container.HasUpdate);
             stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.UpdateCheckFailed);
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
             stringBuilder.Append(container.LastChecked?.ToLocalTime());
+            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
+            stringBuilder.Append(container.NextCheck.ToLocalTime());
             stringBuilder.Append("</td></tr>");
         }
         stringBuilder.AppendLine("</tbody></table>");
@@ -64,38 +73,6 @@ app.MapGet("/containers", async (IContainerService containerService, Cancellatio
         return Results.Ok(containers);
     }
 }).WithName("List all containers").WithTags("Containers");
-
-app.MapGet("/containers/updates", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool running = true) =>
-{
-    var containers = await containerService.GetAll(cancellationToken);
-    containers = [.. containers.OrderBy(x => x.Name).Where(x => x.HasUpdate)];
-
-    if (running)
-        containers = [.. containers.Where(x => x.Status != "exited")];
-
-    if (html)
-    {
-        StringBuilder stringBuilder = new();
-        stringBuilder.AppendLine("<table><thead><tr><th>Names</th><th>Image</th><th>Last checked</th></tr></thead><tbody>");
-        foreach (var container in containers)
-        {
-            stringBuilder.Append("<tr><td style=\"padding: 5px 20px;\">");
-            stringBuilder.Append(container.Name);
-            stringBuilder.Append("</td><td style=\"padding: 5px 30px;\">");
-            stringBuilder.Append(container.Image);
-            stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
-            stringBuilder.Append(container.LastChecked?.ToLocalTime());
-            stringBuilder.Append("</td></tr>");
-        }
-        stringBuilder.AppendLine("</tbody></table>");
-
-        return new HtmlResult(stringBuilder.ToString());
-    }
-    else
-    {
-        return Results.Ok(containers);
-    }
-}).WithName("List all containers that has updates").WithTags("Containers");
 
 app.MapGet("/container/stats", async (IContainerService containerService, CancellationToken cancellationToken) =>
 {

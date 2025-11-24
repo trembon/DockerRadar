@@ -1,19 +1,16 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using DockerRadar.Models;
+using Microsoft.Extensions.Caching.Memory;
 using System.Net.Http.Headers;
 
 namespace DockerRadar.RegistryProviders;
 
-public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache) : RegistryProviderBase(httpClientFactory, memoryCache)
+public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache, IConfiguration configuration) : RegistryProviderBase(httpClientFactory, memoryCache, configuration)
 {
-    protected override string Name => "Microsoft";
+    protected override string Name => "mcr.microsoft.com";
 
-    protected override Task<HttpRequestMessage> CreateRequest(string imageName, CancellationToken cancellationToken)
+    protected override Task<HttpRequestMessage> CreateRequest(DockerImage image, CancellationToken cancellationToken)
     {
-        var parts = imageName.Split(':');
-        var repo = parts[0].Replace("mcr.microsoft.com/", "");
-        var tag = parts.Length > 1 ? parts[1] : "latest";
-
-        var url = $"https://mcr.microsoft.com/v2/{repo}/manifests/{tag}";
+        var url = $"https://{image.Registry}/v2/{image.Namespace}/{image.Image}/manifests/{image.Tag}";
         var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.docker.distribution.manifest.v2+json"));
 
