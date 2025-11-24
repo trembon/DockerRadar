@@ -1,3 +1,9 @@
 <Solution>
+  <Folder Name="/ExternalFiles/">
+    <File Path=".dockerignore" />
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".gitignore" />
+    <File Path="Dockerfile" />
+  </Folder>
   <Project Path="DockerRadar/DockerRadar.csproj" />
 </Solution>
