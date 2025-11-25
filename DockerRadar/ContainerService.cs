@@ -42,6 +42,7 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 Console.WriteLine($"image?.Container: {image?.Container}");
             }
 
+            string digest = image?.RepoDigests?.FirstOrDefault()?.Split('@').Last() ?? container.ImageID;
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
             {
                 Id = container.ID,
@@ -49,16 +50,16 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 Image = container.Image,
                 Architecture = image?.Architecture,
                 OperatingSystem = image?.Os,
-                Digest = image?.RepoDigests.FirstOrDefault()?.Split('@').Last() ?? container.ImageID,
+                Digest = digest,
                 Status = container.State,
                 HasUpdate = false,
                 UpdateCheckFailed = null,
                 LastChecked = null,
-                NextCheck = timeService.GetNextCheckTime(1, 10)
+                NextCheck = DateTime.UtcNow// timeService.GetNextCheckTime(1, 10)
             }, (key, model) =>
             {
                 model.Status = container.State;
-                model.Digest = container.ImageID;
+                model.Digest = digest;
                 return model;
             });
         }

@@ -34,6 +34,12 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
         var containers = await containerService.GetAll(cancellationToken);
         foreach (var container in containers.Where(x => timeService.Now() > x.NextCheck))
         {
+            if (!container.Image.Contains("homeautomation"))
+            {
+                logger.LogInformation("Skipping container {Image} in current debugging state", container.Image);
+                continue;
+            }
+
             logger.LogInformation("Checking updates for container {Image}", container.Image);
 
             bool hasUpdate = false;
