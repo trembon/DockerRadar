@@ -7,6 +7,9 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var intervalMinutes = configuration.GetValue<int>("UpdateCheck:IntervalMinutes", 30);
+        if (intervalMinutes <= 0)
+            return;
+
         var interval = TimeSpan.FromMinutes(intervalMinutes);
 
         while (!stoppingToken.IsCancellationRequested)

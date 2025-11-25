@@ -58,6 +58,11 @@ public abstract class RegistryProviderBase(IHttpClientFactory httpClientFactory,
 
         string json = await res.Content.ReadAsStringAsync(cancellationToken);
 
+        if (res.Headers.TryGetValues("Docker-Content-Digest", out var digestValues))
+        {
+            Console.WriteLine($"found digest from main-request-header: {digestValues.FirstOrDefault()}");
+        }
+
         var remoteDigest = await ParseDigest(json, image, cancellationToken);
         memoryCache.Set(image.ToString(), remoteDigest, TimeSpan.FromHours(8));
         return remoteDigest;
@@ -105,12 +110,6 @@ public abstract class RegistryProviderBase(IHttpClientFactory httpClientFactory,
         }
 
         string data = await res.Content.ReadAsStringAsync(cancellationToken);
-
-        if (res.Headers.TryGetValues("Docker-Content-Digest", out var digestValues))
-        {
-            Console.WriteLine($"found digest from main-request-header: {digestValues.FirstOrDefault()}");
-        }
-
         using var doc = JsonDocument.Parse(data);
         if (doc.RootElement.TryGetProperty("token", out var tokenEl))
         {
