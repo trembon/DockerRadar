@@ -37,7 +37,7 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 Image = container.Image,
                 Architecture = image?.Architecture,
                 OperatingSystem = image?.Os,
-                Digest = container.ImageID,
+                Digest = image?.RepoDigests.FirstOrDefault()?.Split('@').Last() ?? container.ImageID,
                 Status = container.State,
                 HasUpdate = false,
                 UpdateCheckFailed = null,
