@@ -30,19 +30,8 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
             catch { }
 
             string name = container.Names?.FirstOrDefault()?.Replace("/", "") ?? container.ID;
-
-            if (container.Image.Contains("homeautomation"))
-            {
-                Console.WriteLine("Image digests found debugging:");
-                Console.WriteLine($"containerId: {container.ID}");
-                Console.WriteLine($"containerImageId: {container.ImageID}");
-                Console.WriteLine($"image?.ID: {image?.ID}");
-                Console.WriteLine($"image?.RepoDigests: {string.Join(" | ", image?.RepoDigests ?? [])}");
-                Console.WriteLine($"image?.RepoTags: {string.Join(" | ", image?.RepoTags ?? [])}");
-                Console.WriteLine($"image?.Container: {image?.Container}");
-            }
-
             string digest = image?.RepoDigests?.FirstOrDefault()?.Split('@').Last() ?? container.ImageID;
+
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
             {
                 Id = container.ID,
@@ -55,7 +44,7 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 HasUpdate = false,
                 UpdateCheckFailed = null,
                 LastChecked = null,
-                NextCheck = DateTime.UtcNow// timeService.GetNextCheckTime(1, 10)
+                NextCheck = timeService.GetNextCheckTime(1, 10)
             }, (key, model) =>
             {
                 model.Status = container.State;
