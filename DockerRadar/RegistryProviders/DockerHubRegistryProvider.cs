@@ -7,9 +7,9 @@ public class DockerHubRegistryProvider(IHttpClientFactory httpClientFactory, IMe
 {
     protected override string Name => "docker.io";
 
-    protected override string GetManifestUrl(DockerImage image)
+    protected override string GetManifestUrl(DockerImage image, string? digest = null)
     {
-        return $"https://registry-1.docker.io/v2/{image.Namespace}/{image.Image}/manifests/{image.Tag}";
+        return $"https://registry-1.docker.io/v2/{image.Namespace}/{image.Image}/manifests/{digest ?? image.Tag}";
     }
 
     protected override string? GetTokenUrl(DockerImage image)

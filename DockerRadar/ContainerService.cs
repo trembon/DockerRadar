@@ -22,12 +22,21 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
         var containers = await docker.Containers.ListContainersAsync(new ContainersListParameters { All = true }, cancellationToken);
         foreach (var container in containers)
         {
+            ImageInspectResponse? image = null;
+            try
+            {
+                image = await docker.Images.InspectImageAsync(container.ImageID, cancellationToken);
+            }
+            catch { }
+
             string name = container.Names?.FirstOrDefault()?.Replace("/", "") ?? container.ID;
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
             {
                 Id = container.ID,
                 Name = name,
                 Image = container.Image,
+                Architecture = image?.Architecture,
+                OperatingSystem = image?.Os,
                 Digest = container.ImageID,
                 Status = container.State,
                 HasUpdate = false,

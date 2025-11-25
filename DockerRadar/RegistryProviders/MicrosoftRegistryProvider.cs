@@ -7,8 +7,8 @@ public class MicrosoftRegistryProvider(IHttpClientFactory httpClientFactory, IMe
 {
     protected override string Name => "mcr.microsoft.com";
 
-    protected override string GetManifestUrl(DockerImage image)
+    protected override string GetManifestUrl(DockerImage image, string? digest = null)
     {
-        return $"https://{image.Registry}/v2/{image.Namespace}/{image.Image}/manifests/{image.Tag}";
+        return $"https://{image.Registry}/v2/{image.Namespace}/{image.Image}/manifests/{digest ?? image.Tag}";
     }
 }

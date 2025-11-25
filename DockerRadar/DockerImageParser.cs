@@ -4,8 +4,10 @@ namespace DockerRadar;
 
 public static class DockerImageParser
 {
-    public static DockerImage? Parse(string input)
+    public static DockerImage? Parse(ContainerInfoModel container)
     {
+        string? input = container.Image;
+
         if (string.IsNullOrWhiteSpace(input))
             return null;
 
@@ -62,7 +64,7 @@ public static class DockerImageParser
             }
         }
 
-        return new DockerImage(registry, ns, image, tag);
+        return new DockerImage(registry, ns, image, tag, container.Architecture, container.OperatingSystem);
     }
 
     private static bool LooksLikeRegistry(string part)
