@@ -35,7 +35,7 @@ public abstract class RegistryProviderBase(IHttpClientFactory httpClientFactory,
             return null;
 
         var url = GetManifestUrl(image);
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        var request = new HttpRequestMessage(HttpMethod.Head, url);
 
         foreach (string accept in ACCEPTED_MANIFEST_TYPES.Split(','))
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(accept));
