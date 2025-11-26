@@ -36,7 +36,6 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
         {
             logger.LogInformation("Checking updates for container {Image}", container.Image);
 
-            bool hasUpdate = false;
             bool updateCheckFailed = false;
 
             try
@@ -46,9 +45,6 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
 
                 var remoteDigest = await provider.GetRemoteDigest(image, cancellationToken);
                 container.RemoteDigest = remoteDigest;
-
-                if (remoteDigest != null)
-                    hasUpdate = remoteDigest != container.Digest;
             }
             catch (Exception ex)
             {
@@ -58,7 +54,6 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
                     logger.LogError(ex, "Error checking updates for {Image}", container.Image);
             }
 
-            container.HasUpdate = hasUpdate;
             container.UpdateCheckFailed = updateCheckFailed;
             container.LastChecked = timeService.Now();
             container.NextCheck = timeService.GetNextCheckTime();
@@ -66,6 +61,4 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
 
         logger.LogInformation("Docker container update check completed");
     }
-
-
 }
