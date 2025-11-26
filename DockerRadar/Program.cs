@@ -28,7 +28,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/containers", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool updates = false, bool running = true) =>
+app.MapGet("/", async (IContainerService containerService, CancellationToken cancellationToken, bool html = false, bool updates = false, bool running = true) =>
 {
     var containers = await containerService.GetAll(cancellationToken);
     containers = [.. containers.OrderBy(x => x.Name)];
@@ -75,7 +75,7 @@ app.MapGet("/containers", async (IContainerService containerService, Cancellatio
     }
 }).WithName("List all containers").WithTags("Containers");
 
-app.MapGet("/container/stats", async (IContainerService containerService, CancellationToken cancellationToken) =>
+app.MapGet("/stats", async (IContainerService containerService, CancellationToken cancellationToken) =>
 {
     var containers = await containerService.GetAll(cancellationToken);
     var running = containers.Where(x => x.Status != "exited");
