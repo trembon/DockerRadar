@@ -5,8 +5,6 @@ public class ContainerInfoModel
     public string Id { get; init; } = null!;
     public string Name { get; init; } = null!;
     public string Image { get; init; } = null!;
-    public string? Architecture { get; set; }
-    public string? OperatingSystem { get; set; }
     public string Digest { get; set; } = null!;
     public string? RemoteDigest { get; set; }
     public string Status { get; set; } = null!;

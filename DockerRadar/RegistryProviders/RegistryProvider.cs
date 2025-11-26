@@ -94,7 +94,7 @@ public abstract class RegistryProviderBase(IHttpClientFactory httpClientFactory,
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
 
-        var client = httpClientFactory.CreateClient(nameof(GitHubRegistryProvider));
+        var client = httpClientFactory.CreateClient(Name);
         var res = await client.SendAsync(request, cancellationToken);
 
         if (!res.IsSuccessStatusCode)

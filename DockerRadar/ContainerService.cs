@@ -37,8 +37,6 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 Id = container.ID,
                 Name = name,
                 Image = container.Image,
-                Architecture = image?.Architecture,
-                OperatingSystem = image?.Os,
                 Digest = digest,
                 Status = container.State,
                 HasUpdate = false,

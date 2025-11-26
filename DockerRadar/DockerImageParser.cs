@@ -64,7 +64,7 @@ public static class DockerImageParser
             }
         }
 
-        return new DockerImage(registry, ns, image, tag, container.Architecture, container.OperatingSystem);
+        return new DockerImage(registry, ns, image, tag);
     }
 
     private static bool LooksLikeRegistry(string part)
