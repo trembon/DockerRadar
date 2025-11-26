@@ -24,7 +24,7 @@ public class RegistryProviderFactory(IServiceProvider serviceProvider) : IRegist
             return serviceProvider.GetRequiredKeyedService<IRegistryProvider>(nameof(GitHubRegistryProvider));
 
         if (image.Registry == "lscr.io")
-            return null; // TODO: implement
+            return serviceProvider.GetRequiredKeyedService<IRegistryProvider>(nameof(LinuxServerRegistryProvider));
 
         return null;
     }

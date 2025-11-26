@@ -17,6 +17,7 @@ builder.Services.AddSingleton<IRegistryProviderFactory, RegistryProviderFactory>
 builder.Services.AddKeyedSingleton<IRegistryProvider, GitHubRegistryProvider>(nameof(GitHubRegistryProvider));
 builder.Services.AddKeyedSingleton<IRegistryProvider, DockerHubRegistryProvider>(nameof(DockerHubRegistryProvider));
 builder.Services.AddKeyedSingleton<IRegistryProvider, MicrosoftRegistryProvider>(nameof(MicrosoftRegistryProvider));
+builder.Services.AddKeyedSingleton<IRegistryProvider, LinuxServerRegistryProvider>(nameof(LinuxServerRegistryProvider));
 
 builder.Services.AddHostedService<UpdateCheckBackgroundService>();
 
