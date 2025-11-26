@@ -4,6 +4,7 @@
     <File Path=".github/workflows/build.yml" />
     <File Path=".gitignore" />
     <File Path="Dockerfile" />
+    <File Path="README.md" />
   </Folder>
   <Project Path="DockerRadar/DockerRadar.csproj" />
 </Solution>
