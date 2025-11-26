@@ -39,7 +39,6 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 Image = container.Image,
                 Digest = digest,
                 Status = container.State,
-                HasUpdate = false,
                 UpdateCheckFailed = null,
                 LastChecked = null,
                 NextCheck = timeService.GetNextCheckTime(1, 10)
