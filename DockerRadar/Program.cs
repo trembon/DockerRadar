@@ -62,7 +62,7 @@ app.MapGet("/", async (IContainerService containerService, CancellationToken can
             stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
             stringBuilder.Append(container.LastChecked?.ToLocalTime());
             stringBuilder.Append("</td><td style=\"padding: 5px 10px;\">");
-            stringBuilder.Append(container.NextCheck.ToLocalTime());
+            stringBuilder.Append(container.NextCheck?.ToLocalTime().ToString() ?? "ignored");
             stringBuilder.Append("</td></tr>");
         }
         stringBuilder.AppendLine("</tbody></table>");

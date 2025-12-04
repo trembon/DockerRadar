@@ -11,5 +11,5 @@ public class ContainerInfoModel
     public bool HasUpdate { get => RemoteDigest is not null && RemoteDigest != Digest; }
     public bool? UpdateCheckFailed { get; set; }
     public DateTime? LastChecked { get; set; }
-    public DateTime NextCheck { get; set; }
+    public DateTime? NextCheck { get; set; }
 }

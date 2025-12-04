@@ -32,7 +32,7 @@ public class UpdateCheckBackgroundService(ILogger<UpdateCheckBackgroundService> 
         logger.LogInformation("Checking for container updates");
 
         var containers = await containerService.GetAll(cancellationToken);
-        foreach (var container in containers.Where(x => timeService.Now() > x.NextCheck))
+        foreach (var container in containers.Where(x => x.NextCheck.HasValue && timeService.Now() > x.NextCheck))
         {
             logger.LogInformation("Checking updates for container {Image}", container.Image);
 

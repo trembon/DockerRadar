@@ -31,6 +31,7 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
 
             string name = container.Names?.FirstOrDefault()?.Replace("/", "") ?? container.ID;
             string digest = image?.RepoDigests?.FirstOrDefault()?.Split('@').Last() ?? container.ImageID;
+            bool ignore = container.Labels.TryGetValue("dockerradar.ignore", out var ignoreLabel) && ignoreLabel.Equals("true", StringComparison.OrdinalIgnoreCase);
 
             cache.AddOrUpdate(container.ID, new ContainerInfoModel
             {
@@ -41,18 +42,31 @@ public class ContainerService(ITimeService timeService, ILogger<ContainerService
                 Status = container.State,
                 UpdateCheckFailed = null,
                 LastChecked = null,
-                NextCheck = timeService.GetNextCheckTime(1, 10)
+                NextCheck = ignore ? null : timeService.GetNextCheckTime(1, 10)
             }, (key, model) =>
             {
                 model.Status = container.State;
                 model.Digest = digest;
+
+                if (ignore && model.NextCheck != null)
+                {
+                    logger.LogInformation("Container {Name} is now ignored; skipping update checks", name);
+                    model.NextCheck = null;
+                    model.RemoteDigest = null;
+                }
+                else if (!ignore && model.NextCheck == null)
+                {
+                    logger.LogInformation("Container {Name} is no longer ignored; scheduling update checks", name);
+                    model.NextCheck = timeService.GetNextCheckTime(1, 10);
+                }
+
                 return model;
             });
         }
 
         foreach (var toDelete in cache.Values.Where(x => !containers.Any(c => c.ID == x.Id)).ToArray())
         {
-            logger.LogInformation("Removing container {ContainerId} from cache because it no longer exists", toDelete.Id);
+            logger.LogInformation("Removing container {Name} from cache because it no longer exists", toDelete.Name);
             cache.TryRemove(toDelete.Id, out _);
         }
 
